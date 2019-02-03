@@ -9,7 +9,7 @@ progress = 0
 count = 0
 empties = 0
 runtime = 0
-limit = 500
+limit = 100
 
 
 
@@ -119,18 +119,51 @@ def alg(brd,slots):
                         if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):       #if the current number we are testing out of the valid moves are found in another cell,
                             found = True                                                        #that means that number is not a solution for our cell in its 3x3 (nonet)
                             continue                                                            #by finding the number that is unique (not found in the valid moves of its 3x3), that number MUST be the solution to that cell
-                    if found == True:   #number is found in surrounding 3x3, ignore that number
-                        continue
-                    else:
-                        brd2[row][col] = validnums[x][test] #number isn't found and unique, set it to its cell
+                    if found == False:   #number isnt found in surrounding 3x3, number MUST be the solution
+                        brd2[row][col] = validnums[x][test] 
                         count = count + 1
+                        continue
                     
+                    found = False
+                    
+                    indexOfRow = row*9   #we want to continue trying, now onto row elimination instead of 3x3
+                    rowIndexes = [indexOfRow,indexOfRow+1,indexOfRow+2,indexOfRow+3,indexOfRow+4,indexOfRow+5,indexOfRow+6,indexOfRow+7,indexOfRow+8]           #check row if its the only option left
+                    for indexs in rowIndexes:
+                        if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):
+                            found = True                                                        
+                            continue                                                            
+                    if found == False:                          #number is found in its row, ignore that number
+                        brd2[row][col] = validnums[x][test]     #number is unique, set it to its cell
+                        count = count + 1
+                        continue
+
+                    found = False
+                    
+                    indexOfCol = col
+                    colIndexes = [indexOfCol,indexOfCol+1*9,indexOfCol+2*9,indexOfCol+3*9,indexOfCol+4*9,indexOfCol+5*9,indexOfCol+6*9,indexOfCol+7*9,indexOfCol+8*9]       #check col if its the only option left
+                    for indexs in colIndexes:
+                        if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):
+                            found = True                                                        
+                            continue                                                            
+                    if found == False:                          #number is found in its col, ignore that number
+                        brd2[row][col] = validnums[x][test]     #number is unique, set it to its cell
+                        count = count + 1
+                        continue
+
+
+                            
+        print(validnums)
+        print("\n")
+        print(brd2)
+        print("\n")
+        print(count)
         app.setMeter("Status",(count/slots)*100,"Solving")
         runtime = runtime + 1
         
     if runtime>=limit:
         app.errorBox("Error","The runtime of the algorithm has exceeded the set limit of "+str(limit),None)
-        clearboard()
+        runtime = 0
+        app.setMeter("Status",0.0,"Idle")
     else:
         fillboard(brd2)
 
