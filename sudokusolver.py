@@ -8,9 +8,8 @@ from copy import copy
 progress = 0
 count = 0
 empties = 0
-validnums = []
 runtime = 0
-limit = 1000
+limit = 500
 
 
 
@@ -30,22 +29,12 @@ def clearboard():
             
 
 def solve(button):
-    grid = [
-[4, 0, 0, 0, 0, 5, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 1, 9, 8],
-[3, 0, 0, 0, 8, 2, 4, 0, 0],
-[0, 0, 0, 1, 0, 0, 0, 8, 0],
-[9, 0, 3, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 3, 0, 6, 7, 0],
-[0, 5, 0, 0, 0, 9, 0, 0, 0],
-[0, 0, 0, 2, 0, 0, 9, 0, 7],
-[6, 4, 0, 3, 0, 0, 0, 0, 0],
-]
+    
     board = createboard()     #creates a list with all 9 rows based off input
-    #if (empties > 64):
-       # app.errorBox("Error","There must be atleast 17 cells filled in. Please try again",None)
-   # else:
-    alg(grid,55)        #solves the puzzle
+    if (empties > 64):
+        app.errorBox("Error","There must be atleast 17 cells filled in. Please try again",None)
+    else:
+        alg(board,empties)        #solves the puzzle
 
     
 
@@ -84,67 +73,58 @@ def validmoves(brd,row,col):                #generates valid numbers to plug int
             if (brd[checkboxX][checkboxY] in valid):
                 valid.remove(brd[checkboxX][checkboxY])          
     if len(valid) == 0:
-        return 0           #if there are no valid moves left return 0
+        return [0,0,0]           #if there are no valid moves left return 0
     return valid
+
 
 def validgen(brd2):
     validnums = []
     for row in range(0,9):                      #creates a list of valid moves for each cell
             for col in range(0,9):
                 if brd2[row][col] != 0:
-                    validnums.append([0,0,0])       #blank list of moves for a cell that already has been filled in
+                    validnums.append([0,0,0])       #blank list of moves for a cell that already has been filled in (just a filler vector)
                     continue
                 validnums.append(validmoves(brd2,row,col))
     return validnums
+
                 
 def alg(brd,slots):
-    global validnums,runtime,limit
+    global runtime,limit
     count = 0
     brd2 = copy(brd)
-    while ((slots-count) > 0) and (runtime<limit):  
+    while (runtime<limit):
+        if slots <= count:
+            break
         for x in range(0,81):                       #iterates through all valid moves
-            validnums = validgen(brd2)  
+            validnums = validgen(brd2)
+            if (validnums[x][0] == 0):
+                continue
             if len(validnums[x]) == 1:              #if there is only one solution, plug it into the cell
                 row = x//9      
                 col = x%9
                 brd2[row][col] = validnums[x][0]
                 count = count + 1
-                continue
-            #elif (len(validnums[x]) == 2):          #if there is a possible 2 solutions, find the correct solution
-            else:
-                if (validnums[x][0] == 0):
-                    continue
+                continue   
+            else:                                 #if there is a possible 2 solutions, find the correct solution
+                onlySolution = []
                 for test in range(0,len(validnums[x])):
-                    print(validnums[x])
-                    onlySolution = True
+                    found = False
                     row = x//9      
                     col = x%9
                     boxX = 3* (row//3)   #provides the top left X of its 3x3 box
                     boxY = 3 * (col//3)  #provides the top left Y of its 3x3 box
                     indexOfBox = boxY+(boxX*9)
                     boxIndexes = [indexOfBox,indexOfBox+1,indexOfBox+2,indexOfBox+9,indexOfBox+10,indexOfBox+11,indexOfBox+18,indexOfBox+19,indexOfBox+20]  #indexes for the box so I can access the list of valid moves for each cell
-                    for indexs in boxIndexes:
-                        if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):
-                            onlySolution = False
-                           
-                    indexOfRow = row*9
-                    rowIndexes = [indexOfRow,indexOfRow+1,indexOfRow+2,indexOfRow+3,indexOfRow+4,indexOfRow+5,indexOfRow+6,indexOfRow+7,indexOfRow+8]           #check row if its the only option left
-                    for indexs in rowIndexes:
-                        if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):
-                            onlySolution = False
-
-                    indexOfCol = col
-                    colIndexes = [indexOfCol,indexOfCol+1*9,indexOfCol+2*9,indexOfCol+3*9,indexOfCol+4*9,indexOfCol+5*9,indexOfCol+6*9,indexOfCol+7*9,indexOfCol+8*9]       #check col if its the only option left
-                    for indexs in colIndexes:
-                        if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):
-                            onlySolution = False
-                    
-                            
-                    if onlySolution == True:
-                        brd2[row][col] = validnums[x][test]
+                    for indexs in boxIndexes:                                                   #go through all valid moves in the 3x3 of the cell
+                        if ((validnums[x][test] in validnums[indexs]) and (x != indexs)):       #if the current number we are testing out of the valid moves are found in another cell,
+                            found = True                                                        #that means that number is not a solution for our cell in its 3x3 (nonet)
+                            continue                                                            #by finding the number that is unique (not found in the valid moves of its 3x3), that number MUST be the solution to that cell
+                    if found == True:   #number is found in surrounding 3x3, ignore that number
+                        continue
+                    else:
+                        brd2[row][col] = validnums[x][test] #number isn't found and unique, set it to its cell
                         count = count + 1
-                        break
-
+                    
         app.setMeter("Status",(count/slots)*100,"Solving")
         runtime = runtime + 1
         
