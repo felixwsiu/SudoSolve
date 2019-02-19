@@ -7,7 +7,7 @@
 * [Setup](#setup)
 
 ## General info
-Human-like Sudoku solver done in Python with an automatic puzzle solver used on web puzzles
+Human-like Sudoku solver done in Python with an automatic puzzle solver utilizing web scraping
 	
 ## Technologies
 Project is created with:
