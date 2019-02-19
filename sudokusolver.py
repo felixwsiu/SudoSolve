@@ -2,21 +2,26 @@
 
 # import the library
 from appJar import gui
-from copy import copy
+import copy
 import stack
+import time
+import sudoparser
+
 
 #fields/variables
 progress = 0
 count = 0
 empties = 0
 runtime = 0
-limit = 100
+limit = 1000
 oldboards = stack.myStack() #a list of board that will be used to save board states if brute forcing is necessary
 
 
 # handle button events
 def clear(button):
+    app.disableButton("Clear")
     clearboard()
+    app.enableButton("Clear")
             
 def clearboard():
     global runtime
@@ -30,7 +35,7 @@ def clearboard():
             
 
 def solve(button):
-    
+    app.disableButton("Solve")
     board = createboard()     #creates a list with all 9 rows based off input
     '''
     board = [
@@ -53,7 +58,7 @@ def solve(button):
     else:
         alg(board,empties)        #solves the puzzle
 
-    
+    app.enableButton("Solve")
 
 
 def createboard():                          #takes all inputs and creates the board
@@ -108,7 +113,7 @@ def validgen(brd2):
 def alg(brd,slots):
     global runtime,limit
     count = 0
-    brd2 = copy(brd)
+    brd2 = copy.deepcopy(brd)
     while (runtime<limit or slots<=count):
         currentempties = count              #saving the current state of count to compare with the post loop results
         for x in range(0,81):                       #iterates through all valid moves
@@ -193,7 +198,7 @@ def alg(brd,slots):
                 brd2 = oldboards.pop()   #else, try the next board in the stack
             else:   #we have a list of valid moves to fill the cell with
                 for y in nextslot:
-                    tempbrd = copy(brd2)
+                    tempbrd = copy.deepcopy(brd2)
                     row = nextslotindex//9      
                     col = nextslotindex%9
                     tempbrd[row][col] = y   #plugging in the number in valid moves
@@ -202,14 +207,7 @@ def alg(brd,slots):
             fillboard(brd2)
 
 
-                            
-        print(validnums)
-        print("\n")
-        print(brd2)
-        print("\n")
-        print(count)
-        print("\n")
-        print(oldboards.size())
+                        
         app.setMeter("Status",(count/slots)*100,"Solving")
         runtime = runtime + 1
         
@@ -219,6 +217,7 @@ def alg(brd,slots):
         app.setMeter("Status",0.0,"Idle")
     else:
         fillboard(brd2)
+
 
 def fillboard(brd):
     for row in range(0,9):
@@ -236,8 +235,80 @@ def solved(brd2):
     return True
 
 
+def autosolve(button):
+    emptyboard = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    
+    start = time.time()
 
-       
+
+    app.disableButton("Auto Solve")
+    app.disableButton("Solve")
+    app.disableButton("Clear")
+
+    hard =app.getEntry("numhard")
+    medium = app.getEntry("nummedium")
+    easy = app.getEntry("numeasy")
+        
+    if not isinstance(hard,float):
+        hard = 0
+    if not isinstance(medium,float):
+        medium = 0
+    if not isinstance(easy,float):
+        easy = 0
+    
+    for num in range(0,int(hard)):
+        cells = sudoparser.parsePuzzle(3)
+        temp = copy.deepcopy(emptyboard)
+        for cell in cells:
+            temp[int(cell[0])][int(cell[1])] = int(cell[2])
+        alg(temp,81-len(cells))
+
+        
+
+    for num in range(0,int(medium)):
+        cells = sudoparser.parsePuzzle(2)
+        temp = copy.deepcopy(emptyboard)
+        for cell in cells:
+            temp[int(cell[0])][int(cell[1])] = int(cell[2])
+        alg(temp,81-len(cells))
+
+
+            
+
+    for num in range(0,int(easy)):
+        cells = sudoparser.parsePuzzle(1)
+        temp = copy.deepcopy(emptyboard)
+        for cell in cells:
+            temp[int(cell[0])][int(cell[1])] = int(cell[2])
+        alg(temp,81-len(cells))
+
+
+   
+
+    
+
+    
+        
+
+    app.enableButton("Auto Solve")
+    app.enableButton("Solve")
+    app.enableButton("Clear")
+    
+    end = time.time()
+    totaltime = end - start
+    app.infoBox("Results",str(hard+medium+easy) + " puzzles have been solved in " + str(totaltime) + " seconds.")
+    app.clearAllEntries()
+    
+
 # create a GUI variable called app
 app = gui("Sudoku Solver", "400x450")
 app.setLocation("CENTER",y=None)
@@ -282,7 +353,16 @@ app.startTab("Auto")
 app.addMessage("auto","""This service will parse online puzzles from http://www.cs.utep.edu/cheon/ws/sudoku/ and solve them""")
 app.getMessageWidget("auto").config(font="Helvetica 12 ")
 app.setMessageWidth("auto", 350)
-app.setMessageAnchor("auto","n")
+
+
+app.addNumericEntry("numhard")
+app.addNumericEntry("nummedium")
+app.addNumericEntry("numeasy")
+app.setEntryDefault("numhard","Number of hard puzzles")
+app.setEntryDefault("nummedium","Number of medium puzzles")
+app.setEntryDefault("numeasy","Number of easy puzzles")
+
+app.addButton("Auto Solve",autosolve)
 
 app.stopTab()
 
@@ -290,9 +370,7 @@ app.stopTab()
 
 #about tab
 app.startTab("About")
-
-app.stopTab()
-
+app.addMessage("about","Created by Felix Siu")
 
 # start the GUI
 
