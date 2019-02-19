@@ -3,6 +3,7 @@
 # import the library
 from appJar import gui
 from copy import copy
+import stack
 
 #fields/variables
 progress = 0
@@ -10,7 +11,7 @@ count = 0
 empties = 0
 runtime = 0
 limit = 100
-
+oldboards = stack.myStack() #a list of board that will be used to save board states if brute forcing is necessary
 
 
 # handle button events
@@ -31,6 +32,22 @@ def clearboard():
 def solve(button):
     
     board = createboard()     #creates a list with all 9 rows based off input
+    '''
+    board = [
+[0, 0, 6, 0, 5, 4, 9, 0, 0],
+[1, 0, 0, 0, 6, 0, 0, 4, 2],
+[7, 0, 0, 0, 8, 9, 0, 0, 0],
+[0, 7, 0, 0, 0, 5, 0, 8, 1],
+[0, 5, 0, 3, 4, 0, 6, 0, 0],
+[4, 0, 2, 0, 0, 0, 0, 0, 0],
+[0, 3, 4, 0, 0, 0, 1, 0, 0],
+[9, 0, 0, 8, 0, 0, 0, 5, 0],
+[0, 0, 0, 4, 0, 0, 3, 0, 7]
+]
+    empties = 51
+    '''
+
+    
     if (empties > 64):
         app.errorBox("Error","There must be atleast 17 cells filled in. Please try again",None)
     else:
@@ -92,9 +109,8 @@ def alg(brd,slots):
     global runtime,limit
     count = 0
     brd2 = copy(brd)
-    while (runtime<limit):
-        if slots <= count:
-            break
+    while (runtime<limit or slots<=count):
+        currentempties = count              #saving the current state of count to compare with the post loop results
         for x in range(0,81):                       #iterates through all valid moves
             validnums = validgen(brd2)
             if (validnums[x][0] == 0):
@@ -103,6 +119,8 @@ def alg(brd,slots):
                 row = x//9      
                 col = x%9
                 brd2[row][col] = validnums[x][0]
+                app.setEntry(str(row)+str(col),brd2[row][col],callFunction=False)
+                app.setEntryFg(str(row)+str(col),"Green")
                 count = count + 1
                 continue   
             else:                                 #if there is a possible 2 solutions, find the correct solution
@@ -120,7 +138,9 @@ def alg(brd,slots):
                             found = True                                                        #that means that number is not a solution for our cell in its 3x3 (nonet)
                             continue                                                            #by finding the number that is unique (not found in the valid moves of its 3x3), that number MUST be the solution to that cell
                     if found == False:   #number isnt found in surrounding 3x3, number MUST be the solution
-                        brd2[row][col] = validnums[x][test] 
+                        brd2[row][col] = validnums[x][test]
+                        app.setEntry(str(row)+str(col),brd2[row][col],callFunction=False)
+                        app.setEntryFg(str(row)+str(col),"Green")
                         count = count + 1
                         continue
                     
@@ -134,6 +154,8 @@ def alg(brd,slots):
                             continue                                                            
                     if found == False:                          #number is found in its row, ignore that number
                         brd2[row][col] = validnums[x][test]     #number is unique, set it to its cell
+                        app.setEntry(str(row)+str(col),brd2[row][col],callFunction=False)
+                        app.setEntryFg(str(row)+str(col),"Green")
                         count = count + 1
                         continue
 
@@ -147,8 +169,37 @@ def alg(brd,slots):
                             continue                                                            
                     if found == False:                          #number is found in its col, ignore that number
                         brd2[row][col] = validnums[x][test]     #number is unique, set it to its cell
+                        app.setEntry(str(row)+str(col),brd2[row][col],callFunction=False)
+                        app.setEntryFg(str(row)+str(col),"Green")
                         count = count + 1
                         continue
+
+        if solved(brd2):  #check if the board is solved
+            break
+                
+        if (currentempties == count):    #if no changes have occured after going through 81 cells, it means it is stuck
+            nextslot = []
+            nextslotindex = 0
+            for x in range(0,81):
+                if validnums[x][0] != 0:
+                    nextslot = validnums[x]     #if the cell is not a filled cell, set the nextslot its valid moves
+                    nextslotindex = x
+            if nextslot == []:  #if there isnt a cell with valid moves left
+                if oldboards.isEmpty():
+                    app.errorBox("Error","The program has failed to solve the puzzle",None)
+                    runtime = 0
+                    app.setMeter("Status",0.0,"Idle")
+                    break
+                brd2 = oldboards.pop()   #else, try the next board in the stack
+            else:   #we have a list of valid moves to fill the cell with
+                for y in nextslot:
+                    tempbrd = copy(brd2)
+                    row = nextslotindex//9      
+                    col = nextslotindex%9
+                    tempbrd[row][col] = y   #plugging in the number in valid moves
+                    oldboards.push(tempbrd)
+                brd2 = oldboards.pop()      #get the next board state
+            fillboard(brd2)
 
 
                             
@@ -157,6 +208,8 @@ def alg(brd,slots):
         print(brd2)
         print("\n")
         print(count)
+        print("\n")
+        print(oldboards.size())
         app.setMeter("Status",(count/slots)*100,"Solving")
         runtime = runtime + 1
         
@@ -175,6 +228,12 @@ def fillboard(brd):
                 app.setEntryFg(str(row)+str(col),"Green")
     app.setMeter("Status",0.0,"Idle")
 
+def solved(brd2):
+    for row in range(0,9):
+        for col in range (0,9):
+            if brd2[row][col] == 0:
+                return False
+    return True
 
 
 
@@ -217,6 +276,16 @@ app.addMeter("Status")
 
 
 app.stopTab()
+
+app.startTab("Auto")
+
+app.addMessage("auto","""This service will parse online puzzles from http://www.cs.utep.edu/cheon/ws/sudoku/ and solve them""")
+app.getMessageWidget("auto").config(font="Helvetica 12 ")
+app.setMessageWidth("auto", 350)
+app.setMessageAnchor("auto","n")
+
+app.stopTab()
+
 
 
 #about tab
