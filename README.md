@@ -1,5 +1,5 @@
 # SudoSolve
-
+![Main_UI](https://github.com/felixwsiu/SudoSolve/blob/master/sudokusolver.jpg)
 
 ## Table of contents
 * [General info](#general-info)
