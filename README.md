@@ -1,6 +1,6 @@
 # SudoSolve
 ![Main_UI](https://github.com/felixwsiu/SudoSolve/blob/master/sudokusolver.jpg)
-
+![Autosolve](https://github.com/felixwsiu/SudoSolve/blob/master/autoparser.jpg)
 ## Table of contents
 * [General info](#general-info)
 * [Technologies](#technologies)
